@@ -181,6 +181,32 @@
                 <button onclick="alert('Payment Done! Driver ko bhej diya.')">Payment Ho Gayi</button>
             </div>
         </div>
-    </div>
+ <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBRog5mZf8XHDfuCScs9qID4vIJ5qQ8WKk",
+    authDomain: "zilago-nagina.firebaseapp.com",
+    projectId: "zilago-nagina",
+    storageBucket: "zilago-nagina.firebasestorage.app",
+    messagingSenderId: "488596643305",
+    appId: "1:488596643305:web:1d3ff2daa7d1ef98607f78",
+    measurementId: "G-0BY9SQF1DQ"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const analytics = getAnalytics(app);
+  
+  // Ye line important hai - OTP ke liye
+  window.auth = auth;
+</script>
+</body>
+</html>   </div>
 </body>
 </html>
