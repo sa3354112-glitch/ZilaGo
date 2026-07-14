@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZilaGo Web v6 - Nagina Auto Sewa</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
+    :root {
+        --zila-saffron: #FF9933;
+        --zila-green: #138808;
+        --zila-blue: #000080;
+    }
+    body {
+        font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+        overscroll-behavior: none;
+    }
+    .tab-active {
+        background: var(--zila-saffron);
+        color: white;
+    }
+    .toggle-online {
+        background: var(--zila-green);
+        box-shadow: 0 0 20px rgba(19, 136, 8, 0.6);
+    }
+    .toggle-offline {
+        background: #ef4444;
+    }
+    .toggle-knob {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .animate-pulse-green {
+        animation: pulseGreen 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseGreen {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .5; }
+    }
+    .car-marker {
+        offset-path: path('M 30 280 Q 150 200 200 180 Q 280 150 340 120');
+        animation: drive 8s linear infinite;
+        font-size: 24px;
+    }
+    @keyframes drive {
+        0% { offset-distance: 0%; }
+        100% { offset-distance: 100%; }
+    }
+    .modal-backdrop {
+        backdrop-filter: blur(4px);
+    }
+    input[type="file"]::file-selector-button {
+        background: var(--zila-saffron);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        margin-right: 1rem;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<div id="app" class="max-w-md mx-auto min-h-screen bg-white flex flex-col sm:max-w-lg md:max-w-2xl lg:max-w-4xl">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-orange-500 to-green-600 text-white p-4 shadow-lg sticky top-0 z-40">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-2xl">🛺</div>
+                <div>
+                    <h1 class="text-xl font-extrabold">ZilaGo v6</h1>
+                    <p class="text-xs opacity-90">Nagina Auto Sewa</p>
+                </div>
+            <div id="userBadge" class="text-right text-xs hidden">
+                <div id="userName" class="font-semibold"></div>
+                <div id="userId" class="opacity-80"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="flex bg-gray-100 p-1 m-3 rounded-xl shadow-inner">
+        <button onclick="switchTab('customer')" id="tab-customer" class="tab-btn flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all tab-active">Customer</button>
+        <button onclick="switchTab('driver')" id="tab-driver" class="tab-btn flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all">Driver</button>
+        <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all">Admin</button>
+    </div>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto no-scrollbar p-3">
+        <!-- CUSTOMER TAB -->
+        <div id="customer-view" class="space-y-4">
+            <!-- Not logged in -->
+            <div id="customer-auth" class="space-y-4">
+                <div class="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
+                    <h2 class="text-lg font-bold text-orange-700 mb-1">Customer Login</h2>
+                    <p class="text-sm text-gray-600 mb-4">Booking karne ke liye login zaroori hai</p>
+                    
+                    <div class="space-y-3">
+                        <input id="cust-login-aadhaar" type="text" maxlength="12" placeholder="Aadhaar Number" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none">
+                        <button onclick="sendCustomerOTP()" class="w-full bg-orange-500 text-white py-3 rounded-lg font-bold shadow-md active:scale-95 transition">OTP Bhejein</button>
+                    </div>
+
+                    <div id="cust-otp-section" class="hidden mt-3 space-y-3">
+                        <input id="cust-otp" type="text" maxlength="4" placeholder="4-digit OTP daalein" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-center text-xl tracking-widest">
+                        <p class="text-xs text-gray-500 text-center">Demo OTP: 1234</p>
+                        <button onclick="verifyCustomerLogin()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow-md active:scale-95 transition">Login Karein</button>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-orange-200">
+                        <button onclick="showModal('customer-reg-modal')" class="w-full text-orange-600 font-semibold py-2">Naya Customer? Register</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logged in -->
+            <div id="customer-dashboard" class="hidden space-y-4">
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl p-5 shadow-lg">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm opacity-90">Namaste,</p>
+                            <h2 id="cust-dash-name" class="text-2xl font-bold"></h2>
+                            <p id="cust-dash-id" class="text-xs opacity-80 mt-1"></p>
+                        </div>
+                        <button onclick="customerLogout()" class="text-xs bg-white/20 px-3 py-1.5 rounded-lg">Logout</button>
+                    </div>
+                </div>
+
+                <div class="bg-white border-2 border-gray-100 rounded-xl p-4 shadow-sm">
+                    <h3 class="font-bold text-lg mb-3">Auto Book Karein</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700">Pickup</label>
+                            <input id="pickup" value="Nagina Bus Stand" class="w-full mt-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg bg-gray-50" readonly>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700">Drop</label>
+                            <select id="drop" class="w-full mt-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none">
+                                <option>Bijnor</option>
+                                <option>Kiratpur</option>
+                                <option>Dhampur</option>
+                                <option>Najibabad</option>
+                            </select>
+                        </div>
+                        <div class="bg-orange-50 p-3 rounded-lg text-sm">
+                            <div class="flex justify-between"><span>Anumaanit Kiraya:</span><span class="font-bold">₹150</span></div>
+                            <div class="flex justify-between mt-1"><span>Doori:</span><span class="font-bold">~25 km</span></div>
+                        </div>
+                        <button onclick="bookRide()" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">Book Now 🛺</button>
+                    </div>
+                </div>
+
+                <!-- Active Ride -->
+                <div id="active-ride" class="hidden bg-white border-2 border-green-200 rounded-xl p-4 shadow-md">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-green-700">Aapki Ride Active Hai</h3>
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold" id="ride-status">Driver Assigned</span>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-gray-600">Ride ID:</span><span id="ride-id" class="font-mono font-bold"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">OTP:</span><span id="ride-otp" class="font-mono font-bold text-xl text-orange-600"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Driver:</span><span id="ride-driver-name" class="font-semibold"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Driver Phone:</span><span id="ride-driver-phone" class="font-semibold"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Gaadi No:</span><span id="ride-vehicle" class="font-semibold"></span></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button onclick="shareRide()" class="bg-blue-500 text-white py-2.5 rounded-lg font-semibold text-sm">Share Karein</button>
+                        <button onclick="sosAlert()" class="bg-red-500 text-white py-2.5 rounded-lg font-semibold text-sm">SOS</button>
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="bg-white border-2 border-gray-100 rounded-xl p-4 shadow-sm">
+                    <h3 class="font-bold mb-3">Live Tracking - Nagina to Bijnor</h3>
+                    <div class="bg-gray-100 rounded-lg overflow-hidden">
+                        <svg viewBox="0 0 400 300" class="w-full h-48">
+                            <rect width="400" height="300" fill="#e5f5e0"/>
+                            <path d="M 30 280 Q 150 200 200 180 Q 280 150 340 120" stroke="#666" stroke-width="8" fill="none" stroke-linecap="round"/>
+                            <circle cx="30" cy="280" r="12" fill="#FF9933"/>
+                            <text x="30" y="285" text-anchor="middle" font-size="10" fill="white" font-weight="bold">N</text>
+                            <circle cx="340" cy="120" r="12" fill="#138808"/>
+                            <text x="340" y="125" text-anchor="middle" font-size="10" fill="white" font-weight="bold">B</text>
+                            <g id="car-emoji" class="car-marker hidden">🛺</g>
+                        </svg>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center">Offline map - Internet ki zaroorat nahi</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- DRIVER TAB -->
+        <div id="driver-view" class="hidden space-y-4">
+            <!-- Not logged in -->
+            <div id="driver-auth" class="space-y-4">
+                <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                    <h2 class="text-lg font-bold text-green-700 mb-1">Driver Login</h2>
+                    <p class="text-sm text-gray-600 mb-4">Apni ID aur Phone se login karein</p>
+                    
+                    <div class="space-y-3">
+                        <input id="driver-login-id" type="text" placeholder="Driver ID (ZGxxxx)" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none">
+                        <input id="driver-login-phone" type="text" maxlength="10" placeholder="Phone Number" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none">
+                        <button onclick="sendDriverOTP()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow-md active:scale-95 transition">OTP Bhejein</button>
+                    </div>
+
+                    <div id="driver-otp-section" class="hidden mt-3 space-y-3">
+                        <input id="driver-otp" type="text" maxlength="4" placeholder="4-digit OTP" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-center text-xl tracking-widest">
+                        <p class="text-xs text-gray-500 text-center">Demo OTP: 1234</p>
+                        <button onclick="verifyDriverLogin()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow-md active:scale-95 transition">Login Karein</button>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-green-200">
+                        <button onclick="showModal('driver-reg-modal')" class="w-full text-green-600 font-semibold py-2">Naya Driver? Register Karein</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logged in -->
+            <div id="driver-dashboard" class="hidden space-y-4">
+                <div class="bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl p-5 shadow-lg">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm opacity-90">Namaste,</p>
+                            <h2 id="driver-dash-name" class="text-2xl font-bold"></h2>
+                            <p id="driver-dash-id" class="text-xs opacity-80 mt-1"></p>
+                        </div>
+                        <button onclick="driverLogout()" class="text-xs bg-white/20 px-3 py-1.5 rounded-lg">Logout</button>
+                    </div>
+                    
+                    <!-- BIG Online/Offline Toggle -->
+                    <div class="bg-white/10 rounded-xl p-4 backdrop-blur">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-lg" id="online-status-text">Offline Hain</p>
+                                <p class="text-xs opacity-80">Toggle karein sawari lene ke liye</p>
+                            </div>
+                            <button onclick="toggleOnlineStatus()" id="online-toggle" class="toggle-offline w-20 h-10 rounded-full p-1 transition-all duration-300 shadow-lg">
+                                <div id="toggle-knob" class="toggle-knob w-8 h-8 bg-white rounded-full shadow-md transform"></div>
+                            </button>
+                        </div>
+                        <div id="haazir-banner" class="hidden mt-3 bg-white/20 rounded-lg py-2 text-center font-bold animate-pulse-green">
+                            ✅ Haazir Hain - Sawari ka Intezaar
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border-2 border-gray-100 rounded-xl p-4 shadow-sm">
+                    <h3 class="font-bold mb-3">Aaj ka Hisaab</h3>
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-orange-50 rounded-lg p-3">
+                            <p class="text-2xl font-bold text-orange-600" id="rides-today">0</p>
+                            <p class="text-xs text-gray-600">Rides</p>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-3">
+                            <p class="text-2xl font-bold text-green-600" id="earning-today">₹0</p>
+                            <p class="text-xs text-gray-600">Kamayi</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-3">
+                            <p class="text-2xl font-bold text-blue-600" id="rating">4.8</p>
+                            <p class="text-xs text-gray-600">Rating</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="driver-active-ride" class="hidden bg-white border-2 border-orange-200 rounded-xl p-4 shadow-md">
+                    <h3 class="font-bold text-orange-700 mb-3">Current Sawari</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-gray-600">Customer:</span><span id="drv-ride-cust" class="font-semibold"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Pickup:</span><span class="font-semibold">Nagina Bus Stand</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Drop:</span><span id="drv-ride-drop" class="font-semibold"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">OTP Maangein:</span><span id="drv-ride-otp" class="font-mono font-bold text-xl text-orange-600"></span></div>
+                    </div>
+                    <button onclick="completeRide()" class="w-full mt-3 bg-green-600 text-white py-3 rounded-lg font-bold">Ride Complete Karein</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN TAB -->
+        <div id="admin-view" class="hidden space-y-4">
+            <div id="admin-login" class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <h2 class="text-lg font-bold text-blue-700 mb-1">Admin Access</h2>
+                <p class="text-sm text-gray-600 mb-4">Password daalein</p>
+                <input id="admin-pass" type="password" placeholder="Password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg mb-3">
+                <button onclick="adminLogin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">Login</button>
+                <p class="text-xs text-gray-500 text-center mt-2">Demo: admin123</p>
+            </div>
+
+            <div id="admin-dashboard" class="hidden space-y-4">
+                <div class="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl p-4 shadow-lg">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold">Admin Panel</h2>
+                        <button onclick="adminLogout()" class="text-xs bg-white/20 px-3 py-1.5 rounded-lg">Logout</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white border-2 border-gray-100 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-orange-600" id="total-drivers">0</p>
+                        <p class="text-sm text-gray-600">Total Drivers</p>
+                    </div>
+                    <div class="bg-white border-2 border-gray-100 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-green-600" id="online-drivers">0</p>
+                        <p class="text-sm text-gray-600">Online Now</p>
+                    </div>
+                    <div class="bg-white border-2 border-gray-100 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-blue-600" id="total-customers">0</p>
+                        <p class="text-sm text-gray-600">Customers</p>
+                    </div>
+                    <div class="bg-white border-2 border-gray-100 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-purple-600" id="total-rides">0</p>
+                        <p class="text-sm text-gray-600">Total Rides</p>
+                    </div>
+                </div>
+
+                <div class="bg-white border-2 border-gray-100 rounded-xl p-4">
+                    <h3 class="font-bold mb-3">Drivers List</h3>
+                    <div id="drivers-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                </div>
+
+                <div class="bg-white border-2 border-gray-100 rounded-xl p-4">
+                    <h3 class="font-bold mb-3">Recent Rides</h3>
+                    <div id="rides-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- DRIVER REGISTRATION MODAL -->
+<div id="driver-reg-modal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+        <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-green-700">Driver Registration</h2>
+            <button onclick="closeModal('driver-reg-modal')" class="text-2xl">×</button>
+        </div>
+        <form id="driver-reg-form" class="p-4 space-y-3">
+            <input type="text" id="drv-name" placeholder="Poora Naam *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            <input type="tel" id="drv-phone" maxlength="10" placeholder="Phone Number *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            <input type="text" id="drv-aadhaar" maxlength="12" placeholder="Aadhaar Number *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            <input type="text" id="drv-license" placeholder="License Number *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            <select id="drv-vehicle-type" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+                <option value="">Vehicle Type Chunein *</option>
+                <option>Auto Rickshaw</option>
+                <option>E-Rickshaw</option>
+                <option>Taxi</option>
+            </select>
+            <input type="text" id="drv-vehicle-no" placeholder="Vehicle Number (UP20XXXX) *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            <input type="text" id="drv-rc" placeholder="RC Number *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            
+            <div class="space-y-2">
+                <label class="text-sm font-medium">Photo Upload (Placeholder)</label>
+                <input type="file" id="drv-photo" accept="image/*" class="w-full text-sm">
+            </div>
+            <div class="space-y-2">
+                <label class="text-sm font-medium">License Photo (Placeholder)</label>
+                <input type="file" id="drv-license-photo" accept="image/*" class="w-full text-sm">
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 text-white py-3.5 rounded-lg font-bold shadow-lg active:scale-95 transition">Register Karein</button>
+        </form>
+    </div>
+</div>
+
+<!-- CUSTOMER REGISTRATION MODAL -->
+<div id="customer-reg-modal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-orange-700">Customer Registration</h2>
+            <button onclick="closeModal('customer-reg-modal')" class="text-2xl">×</button>
+        </div>
+        <form id="customer-reg-form" class="p-4 space-y-3">
+            <input type="text" id="cust-name" placeholder="Poora Naam *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            <input type="tel" id="cust-phone" maxlength="10" placeholder="Phone Number *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            <input type="text" id="cust-aadhaar" maxlength="12" placeholder="Aadhaar Number *" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
+            
+            <div id="cust-reg-otp-section" class="hidden space-y-3">
+                <input type="text" id="cust-reg-otp" maxlength="4" placeholder="OTP daalein" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-center text-xl tracking-widest">
+                <p class="text-xs text-gray-500 text-center">Demo OTP: 1234</p>
+            </div>
+
+            <button type="submit" class="w-full bg-orange-500 text-white py-3.5 rounded-lg font-bold shadow-lg active:scale-95 transition">OTP Bhejein / Register</button>
+        </form>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 text-sm font-semibold max-w-[90%] text-center"></div>
+
+<script>
+    // STATE MANAGEMENT
+    let currentUser = null;
+    let currentDriver = null;
+    let db = {
+        drivers: [],
+        customers: [],
+        rides: [],
+        currentRide: null
+    };
+
+    // INIT
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDB();
+        checkSession();
+        updateAdminStats();
+    });
+
+    function loadDB() {
+        const saved = localStorage.getItem('zilaGoDB');
+        if (saved) db = JSON.parse(saved);
+    }
+
+    function saveDB() {
+        localStorage.setItem('zilaGoDB', JSON.stringify(db));
+        updateAdminStats();
+    }
+
+    function checkSession() {
+        const custSession = localStorage.getItem('zilaGoCustomer');
+        const driverSession = localStorage.getItem('zilaGoDriver');
+        if (custSession) {
+            currentUser = JSON.parse(custSession);
+            showCustomerDashboard();
+        }
+        if (driverSession) {
+            currentDriver = JSON.parse(driverSession);
+            showDriverDashboard();
+        }
+    }
+
+    // UTILITIES
+    function showToast(msg, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 text-sm font-semibold max-w-[90%] text-center ${type === 'error' ? 'bg-red-600' : 'bg-gray-900'} text-white`;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function showModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function maskPhone(phone) {
+        return phone.slice(0, 2) + 'XXXXXX' + phone.slice(-2);
+    }
+
+    function generateDriverID() {
+        return 'ZG' + Math.floor(1000 + Math.random() * 9000);
+    }
+
+    function generateCustomerID() {
+        return 'CUS' + Math.floor(1000 + Math.random() * 9000);
+    }
+
+    function generateRideID() {
+        return 'ZG' + Date.now().toString().slice(-8);
+    }
+
+    function generateOTP() {
+        return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    // TAB SWITCHING
+    function switchTab(tab) {
+        document.querySelectorAll('[id$="-view"]').forEach(v => v.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+        document.getElementById(tab + '-view').classList.remove('hidden');
+        document.getElementById('tab-' + tab).classList.add('tab-active');
+    }
+
+    // DRIVER REGISTRATION
+    document.getElementById('driver-reg-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('drv-name').value.trim();
+        const phone = document.getElementById('drv-phone').value.trim();
+        const aadhaar = document.getElementById('drv-aadhaar').value.trim();
+        const license = document.getElementById('drv-license').value.trim();
+        const vehicleType = document.getElementById('drv-vehicle-type').value;
+        const vehicleNo = document.getElementById('drv-vehicle-no').value.trim();
+        const rc = document.getElementById('drv-rc').value.trim();
+
+        if (!name || !phone || !aadhaar || !license || !vehicleType || !vehicleNo || !rc) {
+            showToast('Sabhi fields zaroori hain', 'error');
+            return;
+        }
+
+        if (phone.length !== 10 || aadhaar.length !== 12) {
+            showToast('Phone 10 digit aur Aadhaar 12 digit hona chahiye', 'error');
+            return;
+        }
+
+        const driverId = generateDriverID();
+        const driver = {
+            id: driverId,
+            name, phone, aadhaar, license, vehicleType, vehicleNo, rc,
+            online: false,
+            rating: 4.5,
+            rides: 0,
+            earnings: 0,
+            createdAt: new Date().toISOString()
+        };
+
+        db.drivers.push(driver);
+        saveDB();
+        closeModal('driver-reg-modal');
+        showToast(`Registration Successful! Aapka ID: ${driverId}`, 'success');
+        document.getElementById('driver-reg-form').reset();
+    });
+
+    // CUSTOMER REGISTRATION
+    let custRegStep = 1;
+    document.getElementById('customer-reg-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('cust-name').value.trim();
+        const phone = document.getElementById('cust-phone').value.trim();
+        const aadhaar = document.getElementById('cust-aadhaar').value.trim();
+
+        if (custRegStep === 1) {
+            if (!name || !phone || !aadhaar || phone.length !== 10 || aadhaar.length !== 12) {
+                showToast('Sahi details daalein', 'error');
+                return;
+            }
+            document.getElementById('cust-reg-otp-section').classList.remove('hidden');
+            showToast('OTP: 1234 (Demo)', 'info');
+            custRegStep = 2;
+        } else {
+            const otp = document.getElementById('cust-reg-otp').value;
+            if (otp !== '1234') {
+                showToast('Galat OTP', 'error');
+                return;
+            }
+            const custId = generateCustomerID();
+            const customer = {
+                id: custId,
+                name, phone, aadhaar,
+                createdAt: new Date().toISOString()
+            };
+            db.customers.push(customer);
+            saveDB();
+            closeModal('customer-reg-modal');
+            showToast(`Registration Successful! Aapka ID: ${custId}`, 'success');
+            document.getElementById('customer-reg-form').reset();
+            document.getElementById('cust-reg-otp-section').classList.add('hidden');
+            custRegStep = 1;
+        }
+    });
+
+    // DRIVER LOGIN
+    function sendDriverOTP() {
+        const id = document.getElementById('driver-login-id').value.trim();
+        const phone = document.getElementById('driver-login-phone').value.trim();
+        
+        const driver = db.drivers.find(d => d.id === id && d.phone === phone);
+        if (!driver) {
+            showToast('Driver nahi mila. ID aur Phone check karein', 'error');
+            return;
+        }
+        
+        document.getElementById('driver-otp-section').classList.remove('hidden');
+        showToast('OTP: 1234 (Demo)', 'info');
+    }
+
+    function verifyDriverLogin() {
+        const otp = document.getElementById('driver-otp').value;
+        if (otp !== '1234') {
+            showToast('Galat OTP', 'error');
+            return;
+        }
+        
+        const id = document.getElementById('driver-login-id').value.trim();
+        const driver = db.drivers.find(d => d.id === id);
+        currentDriver = driver;
+        localStorage.setItem('zilaGoDriver', JSON.stringify(driver));
+        showDriverDashboard();
+        showToast('Login Successful!', 'success');
+    }
+
+    function showDriverDashboard() {
+        document.getElementById('driver-auth').classList.add('hidden');
+        document.getElementById('driver-dashboard').classList.remove('hidden');
+        document.getElementById('driver-dash-name').textContent = currentDriver.name;
+        document.getElementById('driver-dash-id').textContent = currentDriver.id;
+        document.getElementById('userBadge').classList.remove('hidden');
+        document.getElementById('userName').textContent = currentDriver.name;
+        document.getElementById('userId').textContent = currentDriver.id;
+        updateOnlineToggle();
+        updateDriverStats();
+    }
+
+    function driverLogout() {
+        localStorage.removeItem('zilaGoDriver');
+        currentDriver = null;
+        document.getElementById('driver-auth').classList.remove('hidden');
+        document.getElementById('driver-dashboard').classList.add('hidden');
+        document.getElementById('userBadge').classList.add('hidden');
+    }
+
+    // ONLINE/OFFLINE TOGGLE
+    function toggleOnlineStatus() {
+        currentDriver.online = !currentDriver.online;
+        const driverIndex = db.drivers.findIndex(d => d.id === currentDriver.id);
+        db.drivers[driverIndex].online = currentDriver.online;
+        localStorage.setItem('zilaGoDriver', JSON.stringify(currentDriver));
+        saveDB();
+        updateOnlineToggle();
+        showToast(currentDriver.online ? 'Haazir Hain! Sawari milegi' : 'Offline ho gaye', 'info');
+    }
+
+    function updateOnlineToggle() {
+        const toggle = document.getElementById('online-toggle');
+        const knob = document.getElementById('toggle-knob');
+        const text = document.getElementById('online-status-text');
+        const banner = document.getElementById('haazir-banner');
+        
+        if (currentDriver.online) {
+            toggle.classList.remove('toggle-offline');
+            toggle.classList.add('toggle-online');
+            knob.style.transform = 'translateX(40px)';
+            text.textContent = 'Haazir Hain';
+            banner.classList.remove('hidden');
+        } else {
+            toggle.classList.add('toggle-offline');
+            toggle.classList.remove('toggle-online');
+            knob.style.transform = 'translateX(0)';
+            text.textContent = 'Offline Hain';
+            banner.classList.add('hidden');
+        }
+    }
+
+    function updateDriverStats() {
+        if (!currentDriver) return;
+        document.getElementById('rides-today').textContent = currentDriver.rides || 0;
+        document.getElementById('earning-today').textContent = '₹' + (currentDriver.earnings || 0);
+        document.getElementById('rating').textContent = currentDriver.rating || 4.5;
+    }
+
+    // CUSTOMER LOGIN
+    function sendCustomerOTP() {
+        const aadhaar = document.getElementById('cust-login-aadhaar').value.trim();
+        if (aadhaar.length !== 12) {
+            showToast('12 digit Aadhaar daalein', 'error');
+            return;
+        }
+        
+        const customer = db.customers.find(c => c.aadhaar === aadhaar);
+        if (!customer) {
+            showToast('Customer nahi mila. Pehle register karein', 'error');
+            return;
+        }
+        
+        document.getElementById('cust-otp-section').classList.remove('hidden');
+        showToast('OTP: 1234 (Demo)', 'info');
+    }
+
+    function verifyCustomerLogin() {
+        const otp = document.getElementById('cust-otp').value;
+        if (otp !== '1234') {
+            showToast('Galat OTP', 'error');
+            return;
+        }
+        
+        const aadhaar = document.getElementById('cust-login-aadhaar').value.trim();
+        const customer = db.customers.find(c => c.aadhaar === aadhaar);
+        currentUser = customer;
+        localStorage.setItem('zilaGoCustomer', JSON.stringify(customer));
+        showCustomerDashboard();
+        showToast('Login Successful!', 'success');
+    }
+
+    function showCustomerDashboard() {
+        document.getElementById('customer-auth').classList.add('hidden');
+        document.getElementById('customer-dashboard').classList.remove('hidden');
+        document.getElementById('cust-dash-name').textContent = currentUser.name;
+        document.getElementById('cust-dash-id').textContent = currentUser.id;
+        document.getElementById('userBadge').classList.remove('hidden');
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userId').textContent = currentUser.id;
+        
+        // Check for active ride
+        const activeRide = db.rides.find(r => r.customerId === currentUser.id && r.status === 'active');
+        if (activeRide) showActiveRide(activeRide);
+    }
+
+    function customerLogout() {
+        localStorage.removeItem('zilaGoCustomer');
+        currentUser = null;
+        document.getElementById('customer-auth').classList.remove('hidden');
+        document.getElementById('customer-dashboard').classList.add('hidden');
+        document.getElementById('userBadge').classList.add('hidden');
+    }
+
+    // BOOK RIDE
+    function bookRide() {
+        if (!currentUser) {
+            showToast('Login Required! Pehle login karein', 'error');
+            switchTab('customer');
+            return;
+        }
+
+        const onlineDrivers = db.drivers.filter(d => d.online);
+        if (onlineDrivers.length === 0) {
+            showToast('Koi driver haazir nahi hai. Baad mein try karein', 'error');
+            return;
+        }
+
+        const drop = document.getElementById('drop').value;
+        const driver = onlineDrivers[Math.floor(Math.random() * onlineDrivers.length)];
+        const rideId = generateRideID();
+        const otp = generateOTP();
+
+        const ride = {
+            id: rideId,
+            customerId: currentUser.id,
+            customerName: currentUser.name,
+            driverId: driver.id,
+            driverName: driver.name,
+            driverPhone: driver.phone,
+            vehicleNo: driver.vehicleNo,
+            pickup: 'Nagina Bus Stand',
+            drop: drop,
+            otp: otp,
+            status: 'active',
+            fare: 150,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 30 * 60000).toISOString()
+        };
+
+        db.rides.push(ride);
+        db.currentRide = ride;
+        
+        // Update driver stats
+        const drvIdx = db.drivers.findIndex(d => d.id === driver.id);
+        db.drivers[drvIdx].rides += 1;
+        db.drivers[drvIdx].earnings += 150;
+        
+        saveDB();
+        showActiveRide(ride);
+        showToast('Ride Booked! Driver aa raha hai', 'success');
+        
+        // Animate car
+        document.getElementById('car-emoji').classList.remove('hidden');
+    }
+
+    function showActiveRide(ride) {
+        document.getElementById('active-ride').classList.remove('hidden');
+        document.getElementById('ride-id').textContent = ride.id;
+        document.getElementById('ride-otp').textContent = ride.otp;
+        document.getElementById('ride-driver-name').textContent = ride.driverName;
+        document.getElementById('ride-driver-phone').textContent = maskPhone(ride.driverPhone);
+        document.getElementById('ride-vehicle').textContent = ride.vehicleNo;
+
+        // If driver view, show driver ride
+        if (currentDriver && currentDriver.id === ride.driverId) {
+            document.getElementById('driver-active-ride').classList.remove('hidden');
+            document.getElementById('drv-ride-cust').textContent = ride.customerName;
+            document.getElementById('drv-ride-drop').textContent = ride.drop;
+            document.getElementById('drv-ride-otp').textContent = ride.otp;
+        }
+    }
+
+    function completeRide() {
+        const ride = db.rides.find(r => r.driverId === currentDriver.id && r.status === 'active');
+        if (ride) {
+            ride.status = 'completed';
+            ride.completedAt = new Date().toISOString();
+            saveDB();
+            document.getElementById('driver-active-ride').classList.add('hidden');
+            document.getElementById('active-ride').classList.add('hidden');
+            document.getElementById('car-emoji').classList.add('hidden');
+            showToast('Ride Complete! ₹150 kamaye', 'success');
+        }
+    }
+
+    // TRACKING & PRIVACY
+    function shareRide() {
+        const ride = db.currentRide || db.rides.find(r => r.customerId === currentUser.id && r.status === 'active');
+        if (!ride) return;
+        const shareText = `ZilaGo Ride Track:\nRide ID: ${ride.id}\nDriver: ${ride.driverName}\nPhone: ${maskPhone(ride.driverPhone)}\nValid for 30 mins`;
+        if (navigator.share) {
+            navigator.share({ title: 'ZilaGo Ride', text: shareText });
+        } else {
+            navigator.clipboard.writeText(shareText);
+            showToast('Link copy ho gaya! 30min tak valid', 'success');
+        }
+    }
+
+    function sosAlert() {
+        showToast('SOS Alert! Nagina Police: 112, Admin ko inform kiya gaya', 'error');
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+
+    // ADMIN
+    function adminLogin() {
+        const pass = document.getElementById('admin-pass').value;
+        if (pass === 'admin123') {
+            document.getElementById('admin-login').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            updateAdminStats();
+            showToast('Admin Login Successful', 'success');
+        } else {
+            showToast('Galat Password', 'error');
+        }
+    }
+
+    function adminLogout() {
+        document.getElementById('admin-login').classList.remove('hidden');
+        document.getElementById('admin-dashboard').classList.add('hidden');
+        document.getElementById('admin-pass').value = '';
+    }
+
+    function updateAdminStats() {
+        document.getElementById('total-drivers').textContent = db.drivers.length;
+        document.getElementById('online-drivers').textContent = db.drivers.filter(d => d.online).length;
+        document.getElementById('total-customers').textContent = db.customers.length;
+        document.getElementById('total-rides').textContent = db.rides.length;
+
+        // Drivers list
+        const driversList = document.getElementById('drivers-list');
+        driversList.innerHTML = db.drivers.map(d => `
+            <div class="border-2 border-gray-100 rounded-lg p-3 text-sm">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-bold">${d.name} <span class="text-xs font-mono text-gray-500">${d.id}</span></p>
+                        <p class="text-xs text-gray-600">${d.vehicleNo} | ${maskPhone(d.phone)}</p>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded-full ${d.online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                        ${d.online ? '● Online' : 'Offline'}
+                    </span>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">Rides: ${d.rides} | ₹${d.earnings}</div>
+            </div>
+        `).join('') || '<p class="text-sm text-gray-500 text-center py-4">Koi driver nahi</p>';
+
+        // Rides list
+        const ridesList = document.getElementById('rides-list');
+        ridesList.innerHTML = db.rides.slice(-5).reverse().map(r => `
+            <div class="border-2 border-gray-100 rounded-lg p-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="font-mono font-bold text-xs">${r.id}</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full ${r.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${r.status}</span>
+                </div>
+                <p class="text-xs mt-1">${r.customerName} → ${r.drop}</p>
+                <p class="text-xs text-gray-500">Driver: ${r.driverName} | OTP: ${r.otp}</p>
+            </div>
+        `).join('') || '<p class="text-sm text-gray-500 text-center py-4">Koi ride nahi</p>';
+    }
+</script>
+<script>(function(){document.addEventListener("click",function(e){var a=e.target.closest("[data-product-id]");if(!a)return;e.preventDefault();var pid=a.getAttribute("data-product-id");if(pid)parent.postMessage({type:"ecto-artifact-link-click",productId:pid},"*")})})();</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;var a=target.closest?target.closest("a[href]"):null;if(!a||!a.href||!/^https?:\/\//.test(a.href))return;if(a.href.replace(/#.*$/,"")===loc)return;if(parent===window)return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*")},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
+</html>
