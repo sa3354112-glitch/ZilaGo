@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZilaGo - Nagina Auto Sewa</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f5f5f5; }
+       .header { background: #FF5722; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; }
+       .container { padding: 15px; max-width: 500px; margin: 0 auto; }
+       .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
+        button { background: #FF5722; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        #map { height: 200px; width: 100%; border-radius: 8px; margin: 10px 0; }
+       .fare-box { background: #FFF3E0; padding: 15px; border-radius: 8px; margin: 10px 0; }
+       .fare-row { display: flex; justify-content: space-between; margin: 5px 0; }
+       .total { font-size: 20px; font-weight: bold; color: #FF5722; }
+       .qr-box { text-align: center; padding: 15px; }
+       .qr-box img { width: 200px; height: 200px; }
+       .hidden { display: none; }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=PASTE_YOUR_API_KEY_HERE&libraries=places"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        // 1. FIREBASE CONFIG - TERA CONFIG DAAL DE
+        const firebaseConfig = {
+            apiKey: "PASTE_FIREBASE_API_KEY",
+            authDomain: "PASTE_FIREBASE_AUTH_DOMAIN",
+            projectId: "PASTE_FIREBASE_PROJECT_ID",
+            storageBucket: "PASTE_FIREBASE_STORAGE",
+            messagingSenderId: "PASTE_SENDER_ID",
+            appId: "PASTE_APP_ID"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        // 2. RATE CARD
+        const MIN_FARE = 30;
+        const PER_KM = 15;
+        const COMMISSION = 0.125; // 12.5%
+        
+        let map, pickupAutocomplete, dropAutocomplete, distanceService;
+        let currentDistance = 0, baseFare = 0, customerFare = 0, driverFare = 0;
+        
+        window.onload = function() {
+            // Map Setup
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 29.4425, lng: 78.4361 }, // Nagina
+                zoom: 13
+            });
+            distanceService = new google.maps.DistanceMatrixService();
+            
+            // Autocomplete
+            pickupAutocomplete = new google.maps.places.Autocomplete(document.getElementById('pickup'));
+            dropAutocomplete = new google.maps.places.Autocomplete(document.getElementById('drop'));
+            
+            // Recaptcha for OTP
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible'
+            });
+        }
+        
+        // 3. OTP LOGIN
+        window.sendOTP = function() {
+            const phone = '+91' + document.getElementById('phone').value;
+            signInWithPhoneNumber(auth, phone, window.recaptchaVerifier)
+               .then((confirmationResult) => {
+                    window.confirmationResult = confirmationResult;
+                    alert('OTP bhej diya: ' + phone);
+                    document.getElementById('otp-section').classList.remove('hidden');
+                }).catch((error) => { alert('Error: ' + error.message); });
+        }
+        
+        window.verifyOTP = function() {
+            const code = document.getElementById('otp').value;
+            confirmationResult.confirm(code).then((result) => {
+                alert('Login Success!');
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('booking-section').classList.remove('hidden');
+            }).catch((error) => { alert('Galat OTP'); });
+        }
+        
+        // 4. FARE CALCULATE
+        window.calculateFare = function() {
+            const pickup = document.getElementById('pickup').value;
+            const drop = document.getElementById('drop').value;
+            if (!pickup ||!drop) { alert('Pickup-Drop daalo'); return; }
+            
+            distanceService.getDistanceMatrix({
+                origins: [pickup],
+                destinations: [drop],
+                travelMode: 'DRIVING',
+            }, (response, status) => {
+                if (status!== 'OK') { alert('Location nahi mila'); return; }
+                
+                const distanceMeters = response.rows[0].elements[0].distance.value;
+                currentDistance = distanceMeters / 1000; // KM me
+                
+                // Base Fare Calculate
+                baseFare = Math.max(MIN_FARE, currentDistance * PER_KM);
+                baseFare = Math.round(baseFare);
+                
+                // Commission + Customer Fare
+                const commission = baseFare * COMMISSION;
+                customerFare = Math.round(baseFare + commission);
+                driverFare = baseFare;
+                
+                // Show Fare
+                document.getElementById('distance').innerText = currentDistance.toFixed(1) + ' km';
+                document.getElementById('base-fare').innerText = '₹' + driverFare;
+                document.getElementById('commission').innerText = '₹' + (customerFare - driverFare);
+                document.getElementById('total-fare').innerText = '₹' + customerFare;
+                document.getElementById('fare-section').classList.remove('hidden');
+            });
+        }
+        
+        // 5. PAYMENT
+        window.showCash = function() {
+            alert('Driver ko ₹' + customerFare + ' cash dena hai. Booking confirm!');
+            // Yahan WhatsApp pe driver ko msg bhejna hai
+        }
+        
+        window.showQR = function() {
+            const upiURL = `upi://pay?pa=9106557703@pthdfc&pn=ZilaGo&am=${customerFare}&cu=INR`;
+            document.getElementById('qr-amount').innerText = '₹' + customerFare;
+            document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiURL)}`;
+            document.getElementById('payment-section').classList.remove('hidden');
+        }
+    </script>
+</head>
+<body>
+    <div class="header">🚖 ZilaGo - Nagina Auto Sewa</div>
+    
+    <div class="container">
+        <!-- LOGIN SECTION -->
+        <div id="login-section" class="card">
+            <h3>Phone Se Login Karo</h3>
+            <input type="tel" id="phone" placeholder="10 digit mobile number" maxlength="10">
+            <div id="recaptcha-container"></div>
+            <button onclick="sendOTP()">OTP Bhejo</button>
+            
+            <div id="otp-section" class="hidden">
+                <input type="number" id="otp" placeholder="6 digit OTP">
+                <button onclick="verifyOTP()">Verify OTP</button>
+            </div>
+        </div>
+        
+        <!-- BOOKING SECTION -->
+        <div id="booking-section" class="card hidden">
+            <h3>Kahan Jana Hai?</h3>
+            <input type="text" id="pickup" placeholder="Pickup Location - Nagina">
+            <input type="text" id="drop" placeholder="Drop Location - Badhapur/Bijnor">
+            <div id="map"></div>
+            <button onclick="calculateFare()">Fare Check Karo</button>
+            
+            <!-- FARE SECTION -->
+            <div id="fare-section" class="fare-box hidden">
+                <div class="fare-row"><span>Distance:</span><span id="distance">0 km</span></div>
+                <div class="fare-row"><span>Driver Earning:</span><span id="base-fare">₹0</span></div>
+                <div class="fare-row"><span>ZilaGo Fee 12.5%:</span><span id="commission">₹0</span></div>
+                <hr>
+                <div class="fare-row total"><span>Total Fare:</span><span id="total-fare">₹0</span></div>
+                <button onclick="showCash()">💵 Cash Payment</button>
+                <button onclick="showQR()">📱 Online Pay</button>
+            </div>
+        </div>
+        
+        <!-- PAYMENT QR SECTION -->
+        <div id="payment-section" class="card hidden">
+            <div class="qr-box">
+                <h3>Scan Karke Pay Karo</h3>
+                <p id="qr-amount" style="font-size:24px;color:#FF5722;font-weight:bold;">₹0</p>
+                <img id="qr-img" src="">
+                <p>UPI: 9106557703@pthdfc</p>
+                <p>ZilaGo Nagina Auto Sewa</p>
+                <button onclick="alert('Payment Done! Driver ko bhej diya.')">Payment Ho Gayi</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
