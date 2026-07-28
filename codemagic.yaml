@@ -7,16 +7,22 @@ workflows:
       node: 22.13.0
       java: 17
     scripts:
-      - name: Install
+      - name: Unzip and Find Project
         script: |
-          npm install --legacy-peer-deps
-      - name: Make Android Folder
-        script: |
-          npx expo prebuild --platform android --non-interactive --clean
+          echo "Unzipping your app..."
+          unzip -o ZilaGo-Nagina-Final.zip
+          echo "Finding package.json..."
+          find . -name "package.json" -not -path "*/node_modules/*"
+          PROJECT_ROOT=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1 | xargs dirname)
+          echo "Project found at: $PROJECT_ROOT"
+          echo "PROJECT_ROOT=$PROJECT_ROOT" >> $CM_ENV
       - name: Build APK
         script: |
+          cd $PROJECT_ROOT
+          npm install --legacy-peer-deps
+          npx expo prebuild --platform android --clean
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
     artifacts:
-      - android/app/build/outputs/apk/release/*.apk
+      - "**/android/app/build/outputs/apk/release/*.apk"
