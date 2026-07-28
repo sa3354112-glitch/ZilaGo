@@ -2,17 +2,25 @@ workflows:
   zilago-apk:
     name: ZilaGo APK
     instance_type: mac_mini_m2
-    max_build_duration: 60
+    max_build_duration: 90
     environment:
-      node: 20.18.0
+      node: 22.13.0
       java: 17
     scripts:
-      - name: Install
+      - name: Install dependencies
         script: |
-          npm install
+          npm install --legacy-peer-deps
+      - name: Prebuild Android
+        script: |
+          npx expo prebuild --platform android --clean
       - name: Build APK
         script: |
-          npx expo prebuild --platform android --clean || true
-          cd android && ./gradlew assembleRelease
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
+    publishing:
+      email:
+        recipients:
+          - sa3354112@gmail.com
