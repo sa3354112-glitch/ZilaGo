@@ -2,26 +2,22 @@ workflows:
   zilago-apk:
     name: ZilaGo APK
     instance_type: mac_mini_m2
-    max_build_duration: 90
+    max_build_duration: 60
     environment:
-      node: 22.13.0
+      flutter: stable
       java: 17
     scripts:
-      - name: Unzip Project
-        script: |
-          ls -la
-          unzip -o ZilaGo-Nagina-Final.zip || true
-          echo "--- Finding Expo Project ---"
-          find . -name "package.json" -not -path "*/node_modules/*" | xargs grep -l '"expo"' 2>/dev/null
       - name: Build APK
         script: |
-          PROJECT_DIR=$(find . -name "package.json" -not -path "*/node_modules/*" -not -path "*/functions/*" | xargs grep -l '"expo"' 2>/dev/null | head -n 1 | xargs dirname)
-          echo "Real Project dir: $PROJECT_DIR"
+          unzip -o ZilaGo-Nagina-Final.zip || true
+          PROJECT_DIR=$(find . -name "pubspec.yaml" -not -name "pubspec_*.yaml" | head -n 1 | xargs dirname)
+          echo "Project: $PROJECT_DIR"
           cd $PROJECT_DIR
-          npm install --legacy-peer-deps
-          npx expo prebuild --platform android --clean
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease
+          rm -f pubspec_1.yaml pubspec_2.yaml pubspec_3.yaml
+          ls -la
+          flutter clean
+          flutter create . --platforms=android --org com.zilago.nagina --project-name zilago_nagina
+          flutter pub get
+          flutter build apk --release
     artifacts:
-      - "**/android/app/build/outputs/apk/release/*.apk"
+      - "**/build/app/outputs/flutter-apk/*.apk"
