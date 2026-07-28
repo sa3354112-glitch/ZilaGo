@@ -10,7 +10,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
+          flutter-version: '3.19.6'
+          channel: 'stable'
       - name: Build APK
         run: |
           DIR=$(python3 -c "import pathlib; f=list(pathlib.Path('.').rglob('pubspec.yaml')); print(f[0].parent if f else '.')")
