@@ -9,17 +9,14 @@ workflows:
     scripts:
       - name: Unzip Project
         script: |
-          echo "Listing files..."
           ls -la
-          echo "Unzipping..."
-          unzip -o ZilaGo-Nagina-Final.zip || unzip -o "*.zip" || true
-          echo "After unzip:"
-          ls -la
-          find . -maxdepth 4 -name "package.json" -not -path "*/node_modules/*"
+          unzip -o ZilaGo-Nagina-Final.zip || true
+          echo "--- Finding Expo Project ---"
+          find . -name "package.json" -not -path "*/node_modules/*" | xargs grep -l '"expo"' 2>/dev/null
       - name: Build APK
         script: |
-          PROJECT_DIR=$(find . -maxdepth 4 -name "package.json" -not -path "*/node_modules/*" | head -n 1 | xargs dirname)
-          echo "Project dir is: $PROJECT_DIR"
+          PROJECT_DIR=$(find . -name "package.json" -not -path "*/node_modules/*" -not -path "*/functions/*" | xargs grep -l '"expo"' 2>/dev/null | head -n 1 | xargs dirname)
+          echo "Real Project dir: $PROJECT_DIR"
           cd $PROJECT_DIR
           npm install --legacy-peer-deps
           npx expo prebuild --platform android --clean
