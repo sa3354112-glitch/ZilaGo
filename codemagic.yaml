@@ -4,17 +4,15 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 90
     environment:
-      node: 22.13.0
+      node: 18.20.0
       java: 17
     scripts:
       - name: Unzip and Find Project
         script: |
-          echo "Unzipping your app..."
-          unzip -o ZilaGo-Nagina-Final.zip
-          echo "Finding package.json..."
-          find . -name "package.json" -not -path "*/node_modules/*"
+          unzip -o ZilaGo-Nagina-Final.zip || true
+          ls -la
           PROJECT_ROOT=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1 | xargs dirname)
-          echo "Project found at: $PROJECT_ROOT"
+          echo $PROJECT_ROOT
           echo "PROJECT_ROOT=$PROJECT_ROOT" >> $CM_ENV
       - name: Build APK
         script: |
