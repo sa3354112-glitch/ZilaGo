@@ -5,13 +5,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Unzip
+      - name: Setup
         run: |
-          unzip -o ZilaGo-Nagina-Final.zip -d temp
-          shopt -s dotglob
-          mv temp/*/*. 2>/dev/null || mv temp/*. 2>/dev/null || true
-          rm -rf temp ZilaGo-Nagina-Final.zip
-          ls
+          unzip -o ZilaGo-Nagina-Final.zip
+          # zip ke andar jo folder hai usko bahar nikalo
+          for d in */; do
+            if [ -f "$d/pubspec.yaml" ]; then
+              echo "Found in $d"
+              cp -r $d/*. 2>/dev/null || true
+              cp -r $d/.*. 2>/dev/null || true
+              rm -rf $d temp
+              break
+            fi
+          done
+          rm -f ZilaGo-Nagina-Final.zip
+          ls -la
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
