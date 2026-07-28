@@ -7,20 +7,12 @@ workflows:
       node: 22.13.0
       java: 17
     scripts:
-      - name: Install dependencies
+      - name: Install
         script: |
           npm install --legacy-peer-deps
-      - name: Prebuild Android
+          npm install -g eas-cli
+      - name: Build APK without native folder
         script: |
-          npx expo prebuild --platform android --clean
-      - name: Build APK
-        script: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease
+          eas build --platform android --profile preview --local --non-interactive --output ${CM_BUILD_DIR}/ZilaGo.apk
     artifacts:
-      - android/app/build/outputs/apk/release/*.apk
-    publishing:
-      email:
-        recipients:
-          - sa3354112@gmail.com
+      - ZilaGo.apk
