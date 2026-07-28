@@ -7,14 +7,25 @@ workflows:
       flutter: stable
       java: 17
     scripts:
-      - name: Build APK
+      - name: Show Pubspec
         script: |
           unzip -o ZilaGo-Nagina-Final.zip || true
           PROJECT_DIR=$(find . -name "pubspec.yaml" -not -name "pubspec_*.yaml" | head -n 1 | xargs dirname)
-          echo "Project: $PROJECT_DIR"
           cd $PROJECT_DIR
+          echo "=== pubspec.yaml (718B wala) ==="
+          cat pubspec.yaml
+          echo ""
+          echo "=== pubspec_1.yaml (1.02KB wala) ==="
+          cat pubspec_1.yaml || cat ../pubspec_1.yaml || find . -name "pubspec_1.yaml" -exec cat {} \;
+          echo ""
+          echo "=== lib/services files ==="
+          ls lib/services/
+      - name: Build APK
+        script: |
+          PROJECT_DIR=$(find . -name "pubspec.yaml" -not -name "pubspec_*.yaml" | head -n 1 | xargs dirname)
+          cd $PROJECT_DIR
+          cp -f pubspec_1.yaml pubspec.yaml || true
           rm -f pubspec_1.yaml pubspec_2.yaml pubspec_3.yaml
-          ls -la
           flutter clean
           flutter create . --platforms=android --org com.zilago.nagina --project-name zilago_nagina
           flutter pub get
