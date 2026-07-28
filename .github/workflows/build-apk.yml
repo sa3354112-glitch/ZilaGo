@@ -5,11 +5,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Unzip Project
+      - name: Unzip
         run: |
           unzip -o ZilaGo-Nagina-Final.zip -d temp
-          mv temp/*/*./ 2>/dev/null || mv temp/*./ 2>/dev/null || true
+          shopt -s dotglob
+          mv temp/*/*. 2>/dev/null || mv temp/*. 2>/dev/null || true
           rm -rf temp ZilaGo-Nagina-Final.zip
+          ls
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
