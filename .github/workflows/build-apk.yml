@@ -5,23 +5,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Unzip
         run: unzip -o ZilaGo-Nagina-Final.zip
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
-
       - name: Build APK
         run: |
-          DIR=$(find. -name "pubspec.yaml" -exec dirname {} \; | head -n 1)
-          echo "Project found at: $DIR"
+          DIR=$(python3 -c "import pathlib; f=list(pathlib.Path('.').rglob('pubspec.yaml')); print(f[0].parent if f else '.')")
+          echo "Found: $DIR"
           cd "$DIR"
           flutter pub get
           flutter build apk --release
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
