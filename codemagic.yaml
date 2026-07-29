@@ -11,29 +11,20 @@ workflows:
         script: |
           unzip -o ZilaGo-Nagina-Final.zip || true
           PROJECT_DIR=$(find . -name "pubspec.yaml" -not -name "pubspec_*.yaml" | head -n 1 | xargs dirname)
-          echo "Project: $PROJECT_DIR"
           cd $PROJECT_DIR
           rm -f pubspec_1.yaml pubspec_2.yaml pubspec_3.yaml
           
-          # 1. Android folder banao
           flutter create . --platforms=android --org com.zilago.nagina --project-name zilago_nagina
           
-          # 2. Missing packages add karo (GoogleSignIn error fix)
-          flutter pub add google_sign_in
-          flutter pub add firebase_core firebase_auth cloud_firestore
-          flutter pub get
+          # 🔒 Purane stable versions lock karo - ye tere code se 100% match karenge
+          flutter pub add google_sign_in:6.2.1
+          flutter pub add google_maps_flutter:2.9.0
+          flutter pub add firebase_core:2.24.0 firebase_auth:4.15.3 cloud_firestore:4.15.5
           
-          # 3. RideCategoryType error auto-fix
-          echo "Fixing RideCategoryType bug..."
-          find lib -name "*.dart" -exec sed -i '' -e 's/RideRepository.RideCategoryType/RideCategoryType/g' {} \; 2>/dev/null || find lib -name "*.dart" -exec sed -i 's/RideRepository.RideCategoryType/RideCategoryType/g' {} \;
-          
-          # Agar ab bhi error hai to line ko comment kar do taaki build chale
-          if grep -q "RideCategoryType" lib/repositories/ride/ride_repository.dart; then
-            echo "Creating dummy RideCategoryType..."
-            echo "enum RideCategoryType { bike, auto, car, all }" > lib/models/ride_category_type.dart
-          fi
+          # RideCategoryType fix
+          find lib -type f -name "*.dart" -exec sed -i '' -e 's/RideRepository\.RideCategoryType/RideCategoryType/g' {} \; 2>/dev/null || find lib -type f -name "*.dart" -exec sed -i 's/RideRepository\.RideCategoryType/RideCategoryType/g' {} \;
           
           flutter pub get
-          flutter build apk --release
+          flutter build apk --release --no-tree-shake-icons
     artifacts:
       - "**/build/app/outputs/flutter-apk/*.apk"
