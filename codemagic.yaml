@@ -7,76 +7,12 @@ workflows:
       flutter: stable
       java: 17
     scripts:
-      - name: Build APK Fixed
+      - name: Build APK
         script: |
           unzip -o ZilaGo-Nagina-Final.zip || true
-          PROJECT_DIR=$(find . -name "pubspec.yaml" -not -name "pubspec_*.yaml" | head -n 1 | xargs dirname)
+          PROJECT_DIR=$(find . -name "pubspec.yaml" | head -n 1 | xargs dirname)
           cd $PROJECT_DIR
-          rm -f pubspec_1.yaml pubspec_2.yaml pubspec_3.yaml
-          
           flutter create . --platforms=android --org com.zilago.nagina --project-name zilago_nagina
-          
-          # ---- PUBSPEC FIX ----
-          cat > fix_pubspec.py << 'PY'
-          import pathlib
-          p=pathlib.Path("pubspec.yaml").read_text()
-          # force versions
-          p=p.replace("google_sign_in: ^7.2.0","google_sign_in: 6.2.1")
-          p=p.replace("google_sign_in: 7.2.0","google_sign_in: 6.2.1")
-          p=p.replace("google_sign_in: ^7.","google_sign_in: 6.2.1")
-          if "google_sign_in:" not in p:
-              p+="\n  google_sign_in: 6.2.1\n"
-          if "firebase_database" not in p:
-              p=p.replace("cloud_firestore:", "firebase_database: ^10.4.0\n  cloud_firestore:")
-          if "geolocator" not in p:
-              p+="\n  geolocator: ^10.1.0\n"
-          if "google_maps_flutter" in p:
-              import re
-              p=re.sub(r"google_maps_flutter:.*", "google_maps_flutter: ^2.5.3", p)
-          pathlib.Path("pubspec.yaml").write_text(p)
-          print(p)
-          PY
-          python3 fix_pubspec.py
-          
-          # ---- CODE FIXES ----
-          cat > fix_code.py << 'PY'
-          import pathlib, re, os
-          # 1. Create RideCategoryType enum if missing
-          enum_path=pathlib.Path("lib/models/ride_category_type.dart")
-          if not enum_path.exists():
-              enum_path.parent.mkdir(parents=True, exist_ok=True)
-              enum_path.write_text("enum RideCategoryType { bike, auto, car, all, eRickshaw }\n")
-          
-          # 2. Fix all dart files
-          for fp in pathlib.Path("lib").rglob("*.dart"):
-              txt=fp.read_text(errors='ignore')
-              orig=txt
-              # Add imports where needed
-              if "ServerValue" in txt and "firebase_database" not in txt:
-                  if "import 'package:firebase_database" not in txt:
-                      txt="import 'package:firebase_database/firebase_database.dart';\n"+txt
-              if "Position" in txt and "driver_location" in str(fp) and "geolocator" not in txt:
-                  if "import 'package:geolocator" not in txt:
-                      txt="import 'package:geolocator/geolocator.dart';\n"+txt
-              if "RideCategoryType" in txt and "ride_category_type" not in txt:
-                  if "import" in txt:
-                      # add import after first import
-                      txt=txt.replace("import '", "import 'package:zilago_nagina/models/ride_category_type.dart';\nimport '",1)
-                  # ensure enum import
-                  if "RideCategoryType" in txt and "ride_category_type" not in txt:
-                      pass
-              # fix RideRepository.RideCategoryType
-              txt=txt.replace("RideRepository.RideCategoryType","RideCategoryType")
-              txt=txt.replace("RideCategoryModel.fromType(RideCategoryType","RideCategoryModel.fromType(RideCategoryType.values.firstWhere((e) => e.name == data['category']") # fallback dummy
-              if txt!=orig:
-                  fp.write_text(txt)
-          print("code fixed")
-          PY
-          python3 fix_code.py
-          
-          # add import to driver files manually
-          grep -r "RideCategoryType" lib --include="*.dart" | head
-          
           flutter pub get
           flutter build apk --release --no-tree-shake-icons
     artifacts:
